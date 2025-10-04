@@ -2,11 +2,20 @@
 
 import { useState } from 'react';
 
+interface JobResponse {
+  message: string;
+  job_id: string;
+  status: string;
+  content: string;
+  platform: string;
+}
+
 export default function Home() {
   const [text, setText] = useState('');
   const [platform, setPlatform] = useState('linkedin');
   const [isLoading, setIsLoading] = useState(false);
   const [message, setMessage] = useState('');
+  const [results, setResults] = useState<JobResponse | null>(null);
 
   const handleSend = async () => { //async so it's always running
     if (!text.trim()) {
@@ -16,12 +25,13 @@ export default function Home() {
 
     setIsLoading(true); //sets the state to loading
     setMessage(''); //sets the state to empty string
+    setResults(null); //clear previous results
 
     try {
       // Generate a unique job ID
       const jobId = `job_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`; //generates a unique job ID with date and random number
       
-      const response = await fetch('/backend/v1/trigger_job/', { //fetch makes HTTP request to the backend, this variable stores the HTTP resonse, paused operation until complete
+      const response = await fetch('http://localhost:8000/api/v1/trigger_job/', { //fetch makes HTTP request to the backend, this variable stores the HTTP resonse, paused operation until complete
         method: 'POST', //Method for sending data to server
         headers: {
           'Content-Type': 'application/json', //Content-Type header for JSON data
@@ -36,6 +46,7 @@ export default function Home() {
       if (response.ok) { //if the response is ok, we can set the message and clear the text area
         const data = await response.json(); //data is the response from the backend
         setMessage(data.message); //set the message to the message from the backend
+        setResults(data); //store the results (LinkedIn/email content)
         setText(''); // Clear the text area after successful send
       } else {
         const errorData = await response.json();
@@ -111,6 +122,45 @@ export default function Home() {
             </div>
           )}
         </div>
+
+        {/* Results Section */}
+        {results && (
+          <div className="w-full max-w-4xl mx-auto mt-8 bg-white bg-opacity-20 backdrop-filter backdrop-blur-lg p-6 sm:p-8 rounded-2xl shadow-lg">
+            <div className="mb-6">
+              <h3 className="text-2xl font-bold text-white mb-2">
+                {platform === 'linkedin' ? 'LinkedIn Post' : 'Email Content'}
+              </h3>
+              <p className="text-gray-300">
+                Your content has been repurposed for {platform === 'linkedin' ? 'LinkedIn' : 'email'}:
+              </p>
+            </div>
+            
+            <div className="bg-white bg-opacity-10 rounded-lg p-6 mb-6">
+              <div className="flex items-center justify-between mb-4">
+                <span className="text-sm font-medium text-gray-300 uppercase tracking-wide">
+                  {platform === 'linkedin' ? 'LinkedIn Post' : 'Email Subject & Body'}
+                </span>
+                <button
+                  onClick={() => navigator.clipboard.writeText(results.content)}
+                  className="px-3 py-1 text-xs bg-blue-500 hover:bg-blue-600 text-white rounded-md transition-colors duration-200"
+                >
+                  Copy
+                </button>
+              </div>
+              
+              <div className="text-gray-800 whitespace-pre-wrap">
+                {results.content}
+              </div>
+            </div>
+
+            {/* Additional Info */}
+            {results.job_id && (
+              <div className="text-sm text-gray-400">
+                Job ID: {results.job_id}
+              </div>
+            )}
+          </div>
+        )}
       </main>
     </div>
   );

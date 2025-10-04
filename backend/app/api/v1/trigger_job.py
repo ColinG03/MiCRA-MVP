@@ -19,6 +19,8 @@ class JobResponse(BaseModel):
     message: str
     job_id: str
     status: str
+    content: str
+    platform: str
 
 @router.post("/", response_model=JobResponse, status_code=200) #This handles the POST REQUEST, sends back jobResponse
 async def trigger_job(job_request: JobRequest):
@@ -47,9 +49,11 @@ async def trigger_job(job_request: JobRequest):
         print(f"Triggering job {job_request.job_id} with text: {job_request.text[:100]}...")
         
         return JobResponse(
-            message=generated_text,
+            message=f"Successfully generated {job_request.platform} content",
             job_id=job_request.job_id,
-            status="ok"
+            status="ok",
+            content=generated_text,
+            platform=job_request.platform
         )
         
     except Exception as e:
